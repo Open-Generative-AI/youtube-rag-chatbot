@@ -8,7 +8,17 @@ def create_youtube_chatbot(urls):
     transcripts = ingest_document(url_ids)
 
     chunks = chunk_transcripts(transcripts)
+    from collections import Counter
 
+    chunk_counts = Counter(chunk.metadata["video_id"] for chunk in chunks)
+    print("\n--- CHUNK COUNTS ---")
+    print(chunk_counts)
+
+    print("\n--- SAMPLE CHUNKS ---")
+    for chunk in chunks[:5]:
+        print(chunk.metadata)
+        print(chunk.page_content[:500])
+        print("-" * 50)
     vector_store = create_vector_store(chunks)
 
     llm = ChatOpenAI(

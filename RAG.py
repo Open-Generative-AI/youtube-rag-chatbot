@@ -4,10 +4,7 @@ from chains import format_video_profiles
 load_dotenv()
 
 
-urls = [
-    "https://www.youtube.com/watch?v=LPZh9BOjkQs",
-    "https://www.youtube.com/watch?v=X48VuDVv0do&t=204s"
-]
+urls = ["https://www.youtube.com/watch?v=Ft4SYtajZO8"]
 
 chatbot = create_youtube_chatbot(urls)
 
@@ -23,10 +20,16 @@ print(response)
 
 
 print("\n--- Selected Video QA ---")
+
+selected_video_id = chatbot["video_ids"][0]
+
+user_question = input("Ask a question about the selected video: ")
+
 response = chatbot["selected_video_chain"].invoke({
-    "question": "What does the video say about transformers?",
-    "video_id": "LPZh9BOjkQs"
+    "question": user_question,
+    "video_id": selected_video_id
 })
+
 print(response)
 
 video_profiles = {}
