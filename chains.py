@@ -12,14 +12,24 @@ def format_video_profiles(video_profiles):
         )
 
     return "\n\n---\n\n".join(formatted_profiles)
-def build_qa_chain(vector_store, prompt, llm):
-    retriever = vector_store.as_retriever(
-        search_type="similarity",
-        search_kwargs={"k": 4}
-    )
+def build_qa_chain(vector_store, prompt, llm, video_ids, k_per_video=4):
+
+    def retrieve_docs_from_all_videos(question):
+        all_docs = []
+
+        for video_id in video_ids:
+            docs = vector_store.similarity_search(
+                query=question,
+                k=k_per_video,
+                filter={"video_id": video_id}
+            )
+
+            all_docs.extend(docs)
+
+        return all_docs
 
     parallel_chain = RunnableParallel({
-        "context": retriever | RunnableLambda(format_docs),
+        "context": RunnableLambda(retrieve_docs_from_all_videos) | RunnableLambda(format_docs),
         "question": RunnablePassthrough()
     })
 
@@ -56,25 +66,60 @@ def build_selected_video_qa_chain(vector_store, prompt, llm):
 
 
 def build_video_profile_chain(vector_store, prompt, llm):
-    def retrieve_video_profile_docs(video_id):
+
+    def get_video_docs(video_id):
+        docs = []
+
+        for docstore_id in vector_store.index_to_docstore_id.values():
+            doc = vector_store.docstore.search(docstore_id)
+
+            if doc.metadata.get("video_id") == video_id:
+                docs.append(doc)
+
+        # If video has many chunks, take a representative sample:
+        # first 5, middle 5, last 5
+        if len(docs) > 15:
+            first_docs = docs[:5]
+
+            middle_start = max(5, len(docs) // 2 - 2)
+            middle_docs = docs[middle_start:middle_start + 5]
+
+            last_docs = docs[-5:]
+
+            docs = first_docs + middle_docs + last_docs
+
+        return docs
+
+    profile_chain = (
+        RunnableLambda(get_video_docs)
+        | RunnableLambda(format_docs)
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
+
+    return profile_chain
+def build_video_similarity_chain(prompt, llm):
+    chain = prompt | llm | StrOutputParser()
+    return chain
+
+def build_selected_video_summary_chain(vector_store, prompt, llm):
+
+    def retrieve_selected_video_docs(video_id):
         docs = vector_store.similarity_search(
-            query="What is this video mainly about? What are the key topics discussed?",
-            k=10,
+            query="Summarize this video. What are the main topic, important points, examples, and key takeaway?",
+            k=12,
             filter={"video_id": video_id}
         )
 
         return docs
 
-    profile_chain = (
-            RunnableLambda(retrieve_video_profile_docs)
-            | RunnableLambda(format_docs)
-            | prompt
-            | llm
-            | StrOutputParser()
+    chain = (
+        RunnableLambda(retrieve_selected_video_docs)
+        | RunnableLambda(format_docs)
+        | prompt
+        | llm
+        | StrOutputParser()
     )
 
-    return profile_chain
-
-def build_video_similarity_chain(prompt, llm):
-    chain = prompt | llm | StrOutputParser()
     return chain

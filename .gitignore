@@ -3,3 +3,6 @@
 .idea
 /RAG_test.py
 __pycache__/
+*.pyc
+.faiss/
+.DS_Store
