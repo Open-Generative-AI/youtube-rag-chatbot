@@ -4,7 +4,8 @@ from chains import format_video_profiles
 load_dotenv()
 
 
-urls = ["https://www.youtube.com/watch?v=Ft4SYtajZO8"]
+urls = ["https://www.youtube.com/watch?v=ZHCB09O6zUk",
+        "https://www.youtube.com/watch?v=qYNweeDHiyU"]
 
 chatbot = create_youtube_chatbot(urls)
 
@@ -44,14 +45,14 @@ chatbot = create_youtube_chatbot(urls)
 #     "profiles": profiles_text
 # })
 
-print("\n--- Selected Video Summary ---")
-
-selected_video_id = chatbot["video_ids"][0]
-
-summary = chatbot["selected_video_summary_chain"].invoke(
-    selected_video_id
-)
-
-print(summary)
+# print("\n--- Selected Video Summary ---")
+#
+# selected_video_id = chatbot["video_ids"][0]
+#
+# summary = chatbot["selected_video_summary_chain"].invoke(
+#     selected_video_id
+# )
+#
+# print(summary)
 
 # print(similarity_result)

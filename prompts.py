@@ -10,6 +10,8 @@ Answer the user's question using only the transcript context below.
 The context may contain transcript chunks from one or more YouTube videos.
 Each chunk includes a Video ID.
 
+When relevant, include the video title and timestamp in your answer.
+
 If you use information from a video, mention the relevant Video ID.
 
 If the answer is not present in the context, say:
@@ -35,6 +37,10 @@ Answer the user's question using only the selected video's transcript context.
 
 The user selected this video_id:
 {video_id}
+
+Only answer from this selected video.
+
+When relevant, include the video title and timestamp in your answer.
 
 If the context contains relevant information, answer clearly.
 
@@ -150,4 +156,30 @@ Context:
 Summary:
 """,
     input_variables=["context"]
+)
+
+
+video_comparison_prompt = PromptTemplate(
+    template="""
+You are comparing multiple YouTube videos.
+
+Use ONLY the provided video profiles.
+
+The videos have already been judged as similar or closely related.
+Now create a useful comparison for the user.
+
+Include:
+
+1. Overall comparison
+2. Common themes across the videos
+3. Key differences between the videos
+4. What each video is best for
+5. Final recommendation
+
+Profiles:
+{profiles}
+
+Comparison:
+""",
+    input_variables=["profiles"]
 )

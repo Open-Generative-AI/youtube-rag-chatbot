@@ -123,3 +123,7 @@ def build_selected_video_summary_chain(vector_store, prompt, llm):
     )
 
     return chain
+
+def build_video_comparison_chain(prompt, llm):
+    chain = prompt | llm | StrOutputParser()
+    return chain

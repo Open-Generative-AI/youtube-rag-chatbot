@@ -30,6 +30,9 @@ if "videos" not in st.session_state:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+if "errors" not in st.session_state:
+    st.session_state.errors = []
+
 
 # -----------------------------
 # URL input section
@@ -57,26 +60,39 @@ if process_button:
     else:
         with st.spinner("Processing videos... fetching transcripts, chunking, embedding, and creating vector store."):
             chatbot = create_youtube_chatbot(urls)
-
             st.session_state.chatbot = chatbot
             st.session_state.video_ids = chatbot["video_ids"]
             st.session_state.videos = chatbot["videos"]
+            st.session_state.errors = chatbot.get("errors", [])
             st.session_state.messages = []
 
         st.success("Videos processed successfully.")
+        if chatbot.get("cache_used"):
+            st.info("Loaded existing vector index from cache.")
+        else:
+            st.info("Created a new vector index and saved it to cache.")
+        if st.session_state.errors:
+            st.warning("Some videos could not be processed.")
 
+            for error in st.session_state.errors:
+                title = error.get("video_title", "Unknown video")
+                url = error.get("url", "")
+                message = error.get("error", "Unknown error")
+
+                st.write(f"- **{title}** {url}")
+                st.write(f"  - Reason: {message}")
 
 # -----------------------------
 # Empty state
 # -----------------------------
-if st.session_state.chatbot is None:
+if (st.session_state.chatbot is None) or (st.session_state.chatbot.get("vector_store") is None):
     st.warning("No videos processed yet. Paste real YouTube URLs and click Process Videos.")
 
 
 # -----------------------------
 # Main app after videos are loaded
 # -----------------------------
-if st.session_state.chatbot is not None:
+if (st.session_state.chatbot is not None) and (st.session_state.chatbot["vector_store"] is not None):
     st.subheader("2. Loaded Videos")
 
     for i, video in enumerate(st.session_state.videos, start=1):
@@ -168,27 +184,65 @@ if st.session_state.chatbot is not None:
 
                     response = "\n\n---\n\n".join(summaries)
 
+
                 elif mode == "Compare videos":
+
                     if len(st.session_state.videos) < 2:
+
                         response = "Please paste at least two YouTube videos to compare."
+
                     else:
+
                         video_profiles = {}
 
                         for video in st.session_state.videos:
                             video_id = video["video_id"]
+
                             profile = st.session_state.chatbot["video_profile_chain"].invoke(
+
                                 video_id
+
                             )
+
                             video_profiles[video_id] = profile
 
                         profiles_text = format_video_profiles(video_profiles)
 
                         with st.expander("View generated video profiles"):
+
                             st.write(profiles_text)
 
-                        response = st.session_state.chatbot["video_similarity_chain"].invoke({
+                        similarity_result = st.session_state.chatbot["video_similarity_chain"].invoke({
+
                             "profiles": profiles_text
+
                         })
+
+                        if "Similarity: YES" in similarity_result:
+
+                            comparison_result = st.session_state.chatbot["video_comparison_chain"].invoke({
+
+                                "profiles": profiles_text
+
+                            })
+
+                            response = (
+
+                                "## Similarity Check\n\n"
+
+                                f"{similarity_result}\n\n"
+
+                                "---\n\n"
+
+                                "## Detailed Comparison\n\n"
+
+                                f"{comparison_result}"
+
+                            )
+
+                        else:
+
+                            response = similarity_result
 
                 st.write(response)
 

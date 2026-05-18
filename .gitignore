@@ -6,3 +6,4 @@ __pycache__/
 *.pyc
 .faiss/
 .DS_Store
+vector_cache/
